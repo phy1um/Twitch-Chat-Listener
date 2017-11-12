@@ -1,4 +1,6 @@
 class IRCMsg(object):
+    """simple wrapper for breaking apart an IRC PRIVMSG
+    """
     def __init__(self, name, chan, msg):
         self.name = name
         self.channel = chan

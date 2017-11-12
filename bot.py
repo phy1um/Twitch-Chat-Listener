@@ -3,7 +3,6 @@ import re
 import socket
 import time
 import datetime
-import time
 
 class TwitchListen(object):
 
