@@ -150,18 +150,18 @@ if __name__ == "__main__":
 
     # we will be monitoring #BobRoss for keywords
     tl.join_channel("#bobross")
-    keywords = re.compile("cabin|fence|devil")
+    keyword_pattern = re.compile("cabin|fence|devil|.*")
 
     # check if our messages contain a keyword ignoring case
     def test_message(m):
         m = m.lower()
-        match = keywords.search(m)
+        match = keyword_pattern.search(m)
         if match:
             parts = ircutil.splitPrivMsg(m)
             print("MATCH: {} in {} (by {})".format(parts.message, parts.channel, parts.name))
 
     # look for 10 seconds (predicate example)
-    end = time.time() + 10
-    print("Looping until time={}".format(end))
+    time_end = time.time() + 600
+    print("Looping until time={}".format(time_end))
     # call onMatch for messages we are monitoring until loopEnd == True
-    tl.process_stream(on_match=test_message, loop_end=lambda x: x > end)
+    tl.process_stream(on_match=test_message, loop_end=lambda x: x > time_end)
