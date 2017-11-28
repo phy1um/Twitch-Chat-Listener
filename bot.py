@@ -37,11 +37,13 @@ class TwitchListen(object):
         self._encoding = "utf-8"
         self._listen = []
         self._lastping = -1
-        self._joinq = []
-        self._join = []
-        self._irc_connect()
         self._relisten = re.compile(r"")
         self._pingcount = 0
+        self._onconnect = []
+        self._irc_connect()
+        
+    def command_on_connect(self, cmd, data):
+        self._onconnect.append((cmd, data))
 
     def _irc_connect(self):
         """
@@ -49,7 +51,7 @@ class TwitchListen(object):
         """
         self._socket = socket.socket()
         self._socket.connect(self._host)
-        # tell the server who we are
+        # tell IRC who we are
         self.command("PASS", self._pw)
         self.command("NICK", self._nick)
         # create a filestream that we can read messages from
@@ -58,10 +60,12 @@ class TwitchListen(object):
         self._socket.settimeout(self._sockettimeout)
         # time of last message we recieved (-1 indicates no messages)
         self._lastping = -1
-        for c in self._join:
-            self.join_channel(c)
-        for c in self._joinq:
-            self.join_channel(c, False)
+
+    def _on_connect(self):
+        print("on_connect")
+        for c in self._onconnect:
+            self.command(c[0], c[1])
+
 
     def command(self, cmd, data):
         """perform and IRC command for some given data, eg:
@@ -87,13 +91,11 @@ class TwitchListen(object):
             raise Exception(
                 "Channel name {} does not start with #".format(channel))
 
-        self.command("JOIN", channel)
+#       self.command("JOIN", channel)
         if listen is True:
             self._listen.append(channel)
             self._make_listen_regex()
-            self._join = channel
-        else:
-            self._joinq = channel
+        self.command_on_connect("JOIN", channel)
 
     def _make_listen_regex(self):
         """create matching rules for the channels we are listening to
@@ -116,6 +118,7 @@ class TwitchListen(object):
              each iteration of the while loop, the loop exits when this is True
         """
         # lock self?
+        self._on_connect()
         now = time.time()
         # process until some predicate (default forever)
         if loop_end == None:
@@ -126,6 +129,7 @@ class TwitchListen(object):
                 # for each line in stream
                 m = self._stream.readline()
                 if m != "":
+                    print(m)
                     # update last message time
                     self._lastping = now
                     # reply to ping with pong to keep connection alive
@@ -142,12 +146,14 @@ class TwitchListen(object):
                 if self._lastping > 0 and time.time() > self._lastping + 180:
                     self._socket.close()
                     self._irc_connect()
+                    self._on_connect()
 
                 now = time.time()
             # also if our socket times out, that's a restart
             except socket.timeout:
                 self._socket.close()
                 self._irc_connect()
+                self._on_connect()
 
 
 if __name__ == "__main__":
@@ -157,10 +163,12 @@ if __name__ == "__main__":
     import ircutil
 
     # load settings from a config file (for simplicity)
-    tl = TwitchListen(cfg.NICK, cfg.PASS)
+    tl = TwitchListen(cfg.NICK, cfg.PASS, timeout=10)
 
     # we will be monitoring #BobRoss for keywords
     tl.join_channel("#bobross")
+    tl.join_channel("#raejayy")
+    tl.join_channel("#piebypie")
     keyword_pattern = re.compile("cabin|fence|devil|.*")
 
     # check if our messages contain a keyword ignoring case
