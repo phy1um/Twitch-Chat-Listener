@@ -37,6 +37,8 @@ class TwitchListen(object):
         self._encoding = "utf-8"
         self._listen = []
         self._lastping = -1
+        self._joinq = []
+        self._join = []
         self._irc_connect()
         self._relisten = re.compile(r"")
         self._pingcount = 0
@@ -56,6 +58,10 @@ class TwitchListen(object):
         self._socket.settimeout(self._sockettimeout)
         # time of last message we recieved (-1 indicates no messages)
         self._lastping = -1
+        for c in self._join:
+            self.join_channel(c)
+        for c in self._joinq:
+            self.join_channel(c, False)
 
     def command(self, cmd, data):
         """perform and IRC command for some given data, eg:
@@ -85,6 +91,9 @@ class TwitchListen(object):
         if listen is True:
             self._listen.append(channel)
             self._make_listen_regex()
+            self._join = channel
+        else:
+            self._joinq = channel
 
     def _make_listen_regex(self):
         """create matching rules for the channels we are listening to
@@ -97,7 +106,7 @@ class TwitchListen(object):
         self._relisten = re.compile(match)
 
 
-    def process_stream(self, on_match, loop_end):
+    def process_stream(self, on_match, loop_end=None):
         """process messages in channels until some condition
 
         Args:
@@ -109,6 +118,8 @@ class TwitchListen(object):
         # lock self?
         now = time.time()
         # process until some predicate (default forever)
+        if loop_end == None:
+            loop_end = lambda x: False
         while not loop_end(now):
             # try to catch socket timeouts
             try:
