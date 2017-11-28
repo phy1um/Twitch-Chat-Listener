@@ -129,7 +129,6 @@ class TwitchListen(object):
                 # for each line in stream
                 m = self._stream.readline()
                 if m != "":
-                    print(m)
                     # update last message time
                     self._lastping = now
                     # reply to ping with pong to keep connection alive
@@ -163,13 +162,11 @@ if __name__ == "__main__":
     import ircutil
 
     # load settings from a config file (for simplicity)
-    tl = TwitchListen(cfg.NICK, cfg.PASS, timeout=10)
+    tl = TwitchListen(cfg.NICK, cfg.PASS, timeout)
 
     # we will be monitoring #BobRoss for keywords
     tl.join_channel("#bobross")
-    tl.join_channel("#raejayy")
-    tl.join_channel("#piebypie")
-    keyword_pattern = re.compile("cabin|fence|devil|.*")
+    keyword_pattern = re.compile("cabin|fence|devil")
 
     # check if our messages contain a keyword ignoring case
     def test_message(m):
